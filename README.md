@@ -36,3 +36,13 @@ Bot id is required if you have more than one bot.
 ### Slack Integration
 
 For slack integration fill the .env SLACK_BOT_USER_OAUTH_TOKEN and SLACK_BOT_USER_DEFAULT_CHANNEL values.
+
+### Cron configuration
+
+For run cron schedulules add this line into cron file:
+`* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1`
+
+### Supervisor configuration
+Configure two queues in Supervisor with these names: "notifications" and "tickets"
+
+To read more about Supervisor configuration read [Laravel Supervisor configuration](https://laravel.com/docs/12.x/queues#installing-supervisor)
