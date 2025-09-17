@@ -20,6 +20,6 @@ class TicketCreatedListener
      */
     public function handle(TicketCreatedEvent $event): void
     {
-        Notification::route('slack', '#requests-to-support')->notify(new TicketCreatedNotification($event->ticket));
+        Notification::route('slack', env('SLACK_BOT_USER_DEFAULT_CHANNEL', '#requests-to-support'))->notify(new TicketCreatedNotification($event->ticket));
     }
 }
