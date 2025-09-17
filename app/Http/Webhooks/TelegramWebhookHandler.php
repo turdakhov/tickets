@@ -4,6 +4,7 @@ namespace App\Http\Webhooks;
 
 use App\Enums\ChannelEnum;
 use App\Enums\StatusEnum;
+use App\Events\TicketCreatedEvent;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
@@ -78,6 +79,8 @@ class TelegramWebhookHandler extends EmptyWebhookHandler
         $incompleteTicket->update([
             'status' => StatusEnum::New,
         ]);
+
+        event(new TicketCreatedEvent($incompleteTicket));
 
         $this->chat->message("Ticket " . $incompleteTicket->front_name . " created.")->send();
     }
