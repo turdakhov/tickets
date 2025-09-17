@@ -40,7 +40,7 @@ const page = usePage();
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
-            <Form :action="store()" class="w-4/12 space-y-4" #default="{
+            <Form :action="store()" class="lg:w-6/12 w-full space-y-4" #default="{
                 errors,
                 processing,
             }">
