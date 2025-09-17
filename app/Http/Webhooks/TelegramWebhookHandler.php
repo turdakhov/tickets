@@ -2,6 +2,7 @@
 
 namespace App\Http\Webhooks;
 
+use App\Contracts\TelegramServiceContract;
 use App\Enums\ChannelEnum;
 use App\Enums\StatusEnum;
 use App\Events\TicketCreatedEvent;
@@ -16,15 +17,21 @@ use Stringable;
 
 class TelegramWebhookHandler extends EmptyWebhookHandler
 {
+
+    private ?string $stringText;
+
+    private ?Ticket $incompleteTicket;
+
+    public function __construct(private TelegramServiceContract $telegramService) {}
+
     public function start()
     {
-        $this->chat->message("Hello! Select a category:")->keyboard($this->makeCategoryKeyboard())->send();
+        $this->chat->message("Hello! Select a category:")->keyboard($this->telegramService->makeCategoryKeyboard())->send();
     }
 
     public function selectCategory(string $slug)
     {
         $category = Category::where('slug', $slug)->first();
-
 
         $incompleteTicket = Ticket::firstOrCreate(
             [
@@ -38,69 +45,65 @@ class TelegramWebhookHandler extends EmptyWebhookHandler
             ]
         );
 
-        $this->chat->message("Enter a subject:")->send();
+        $this->telegramService->askForSubject($this->chat);
     }
 
     protected function handleChatMessage(Stringable $text): void
     {
-        $stringText = trim((string) $text);
+        $this->stringText = trim((string) $text);
 
-        $incompleteTicket = Ticket::where('chat_id', $this->chat->chat_id)->where('status', StatusEnum::Incomplete)->first();
+        $this->incompleteTicket = Ticket::where('chat_id', $this->chat->chat_id)->where('status', StatusEnum::Incomplete)->first();
 
-        if (!$incompleteTicket) {
-            if (substr(strtolower($stringText), 0, 5) == 'hello') {
-                $this->start();
-                return;
-            }
-            $this->chat->message("Please type \"Hello\" or press /start command.")->send();
+        if (!$this->incompleteTicket) {
+            $this->handleMessageWithoutIncompleteTicket();
             return;
         }
 
-        if (!$incompleteTicket->subject) {
-            if (!$stringText) {
-                $this->chat->message("Enter a subject:")->send();
-                return;
-            }
-            $incompleteTicket->update([
-                'subject' => $stringText,
-            ]);
-            $this->chat->message("Enter a message:")->send();
+        if (!$this->incompleteTicket->subject) {
+            $this->handleMessageWhenSubjectIsEmpty();
             return;
         }
 
-        if (!$stringText) {
-            $this->chat->message("Enter a message:")->send();
+        if (!$this->stringText) {
+            $this->telegramService->askForMessage($this->chat);
             return;
         }
-        $incompleteTicket->ticketMessages()->create([
-            'text' => $stringText,
+
+        $this->handleMessageWithFullData();
+    }
+
+    private function handleMessageWithoutIncompleteTicket(): void
+    {
+        if (substr(strtolower($this->stringText), 0, 5) == 'hello') {
+            $this->start();
+            return;
+        }
+        $this->chat->message("Please type \"Hello\" or press /start command.")->send();
+    }
+
+    private function handleMessageWhenSubjectIsEmpty(): void
+    {
+        if (!$this->stringText) {
+            $this->telegramService->askForSubject($this->chat);
+        }
+        $this->incompleteTicket->update([
+            'subject' => $this->stringText,
+        ]);
+        $this->telegramService->askForMessage($this->chat);
+    }
+
+    private function handleMessageWithFullData()
+    {
+        $this->incompleteTicket->ticketMessages()->create([
+            'text' => $this->stringText,
         ]);
 
-        $incompleteTicket->update([
+        $this->incompleteTicket->update([
             'status' => StatusEnum::New,
         ]);
 
-        event(new TicketCreatedEvent($incompleteTicket));
+        event(new TicketCreatedEvent($this->incompleteTicket));
 
-        $this->chat->message("Ticket " . $incompleteTicket->front_name . " created.")->send();
-    }
-
-    private function makeCategoryKeyboard(): Keyboard
-    {
-        $categories = Category::all();
-
-        $keyboard = Keyboard::make();
-
-        for ($i = 0; $i < $categories->count(); $i = $i + 2) {
-            $row = [];
-            for ($j = 0; $j < 2; $j++) {
-                if ($categories[$i + $j]) {
-                    $row[] = Button::make($categories[$i + $j]->name)->action('selectCategory')->param('slug', $categories[$i + $j]->slug);
-                }
-            }
-            $keyboard->row($row);
-        }
-
-        return $keyboard;
+        $this->chat->message("Ticket " . $this->incompleteTicket->front_name . " created.")->send();
     }
 }
