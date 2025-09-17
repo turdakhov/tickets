@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ChannelEnum;
 use App\Enums\StatusEnum;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,7 @@ class Ticket extends Model
 
     protected $fillable = [
         'user_id',
+        'chat_id',
         'channel',
         'category_slug',
         'subject',
@@ -41,5 +43,12 @@ class Ticket extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    protected function frontName(): Attribute
+    {
+        return Attribute::make(
+            get: fn (mixed $value, array $attributes) => 'AT-Ticket-' . str_pad($attributes['id'], 5, '0', STR_PAD_LEFT),
+        );
     }
 }
