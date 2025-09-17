@@ -79,6 +79,8 @@ class TelegramWebhookHandler extends EmptyWebhookHandler
             'status' => StatusEnum::New,
         ]);
 
+        event(new TicketCreatedEvent($incompleteTicket));
+
         $this->chat->message("Ticket " . $incompleteTicket->front_name . " created.")->send();
     }
 
