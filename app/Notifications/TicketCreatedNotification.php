@@ -37,7 +37,7 @@ class TicketCreatedNotification extends Notification implements ShouldQueue
     public function toSlack(object $notifiable): SlackMessage
     {
         return (new SlackMessage)
-            ->headerBlock('New Support Ticket')
+            ->headerBlock('New Support Ticket (' . $this->ticket->category->name . ')')
             ->contextBlock(function (ContextBlock $block) {
                 $block->text($this->ticket->channel === ChannelEnum::WEB ? $this->ticket->user->email : 'Telegram User');
             })
