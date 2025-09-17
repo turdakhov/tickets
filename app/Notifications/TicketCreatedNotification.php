@@ -21,6 +21,7 @@ class TicketCreatedNotification extends Notification implements ShouldQueue
      */
     public function __construct(private ?Ticket $ticket)
     {
+        $this->queue = 'notifications';
     }
 
     /**
