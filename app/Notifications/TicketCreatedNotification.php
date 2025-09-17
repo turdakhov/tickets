@@ -39,7 +39,8 @@ class TicketCreatedNotification extends Notification implements ShouldQueue
         return (new SlackMessage)
             ->headerBlock('New Support Ticket (' . $this->ticket->category->name . ')')
             ->contextBlock(function (ContextBlock $block) {
-                $block->text($this->ticket->channel === ChannelEnum::WEB ? $this->ticket->user->email : 'Telegram User');
+                $block->text($this->ticket->channel === ChannelEnum::WEB ? $this->ticket->user->email . ' / ID' . $this->ticket->user->id : 'Telegram User');
+                $block->text('Channel: ' . $this->ticket->channel->name);
             })
             ->sectionBlock(function (SectionBlock $block) {
                 $block->field("*Subject:*\n" . $this->ticket->subject)->markdown();
