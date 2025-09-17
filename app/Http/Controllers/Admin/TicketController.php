@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\ChannelEnum;
+use App\Events\TicketCreatedEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Tickets\StoreTicketRequest;
 use App\Models\Category;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -25,7 +27,9 @@ class TicketController extends Controller
     {
         $data = $request->validated();
 
-        DB::transaction(function () use ($data) {
+        try {
+            DB::beginTransaction();
+
             $category = Category::find($data['category_id']);
 
             $ticket = Ticket::create([
@@ -39,9 +43,14 @@ class TicketController extends Controller
                 'sender_id' => auth()->user()->id,
                 'text' => $data['message'],
             ]);
-        });
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+        }
+        event(new TicketCreatedEvent($ticket));
+
 
         return redirect()->route('dashboard')->with('message', 'Ticket successfully submitted!');
     }
-
 }
